@@ -12,7 +12,8 @@
   "peerDependencies": {
     "typescript": "^5.7.3",
     "@repo/typescript-config": "*",
-    "@repo/userdb": "*"
+    "@repo/userdb": "*",
+    "@repo/common": "*"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
