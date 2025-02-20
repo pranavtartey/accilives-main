@@ -12,6 +12,8 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
+    "@auth/express": "^0.8.4",
+    "@auth/prisma-adapter": "^2.7.4",
     "@prisma/client": "^6.4.0",
     "prisma": "^6.4.0"
   }
