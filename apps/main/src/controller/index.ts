@@ -1,5 +1,6 @@
 import { UserSchema, OtpSchema } from "@repo/common/types";
 import { prisma } from "@repo/userdb/user";
+import bcrypt from "bcryptjs";
 import { Request, Response } from "express";
 
 
@@ -12,218 +13,101 @@ const randomOtpGenerator = (): string => {
     return result;
 }
 
-export const signin = async (req: Request, res: Response) => {
+export const signup = async (req: Request, res: Response) => {
+    const { email, phoneNumber, password, name, type } = req.body;
+
+    console.log("here", req.body);
     try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const result = await prisma.$transaction(async (prisma) => {
+            const user = await prisma.user.create({
+                data: {
+                    email,
+                    password: hashedPassword,
+                    phoneNumber,
+                    name,
+                    isActive: true,
+                },
+            });
 
-        const parsedData = UserSchema.safeParse(req.body);
-        if (!parsedData.success) {
+            const auth = await prisma.auth.create({
+                data: {
+                    email,
+                    password: hashedPassword,
+                    phoneNumber,
+                    name,
+                    userid: user.id,
+                },
+            });
+
+            console.log("This is your result : ", { user, auth })
+
+        });
+        res.status(200).send({
+            success: true,
+            message: "The user and auth were create successfully"
+        });
+        return
+    } catch (err) {
+        console.log("Something went wrong in the signup controller : ", err),
             res.send({
-                success: parsedData.success,
-                message: "Invalid Input in signin controller"
-            })
-            return
-        }
-
-        if (parsedData.data.type === "phoneNumber") {
-            const user = await prisma.user.findFirst({
-                where: {
-                    phoneNumber: parsedData.data.phoneNumber
-                }
-            })
-            if (!user) {
-                res.status(401).send({
-                    success: false,
-                    message: "Invalid User details"
-                })
-                return
-            }
-
-            const otp = randomOtpGenerator();
-
-            const userOtp = await prisma.user.update({
-                where: {
-                    id: user.id
-                },
-                data: {
-                    otp
-                }
-            })
-
-            setTimeout(async () => {
-                await prisma.user.update({
-                    where: {
-                        id: user.id
-                    },
-                    data: {
-                        otp: ""
-                    }
-                })
-            }, 300000)
-
-            res.status(200).send({
-                otp
-            })
-            return;
-
-        } else if (parsedData.data.type === "email") {
-            const user = await prisma.user.findFirst({
-                where: {
-                    email: parsedData.data.email
-                }
-            })
-            if (!user) {
-                res.status(401).send({
-                    success: false,
-                    message: "Invalid User details"
-                })
-                return
-            }
-            const otp = randomOtpGenerator();
-
-            const userOtp = await prisma.user.update({
-                where: {
-                    id: user.id
-                },
-                data: {
-                    otp
-                }
-            })
-
-            setTimeout(async () => {
-                await prisma.user.update({
-                    where: {
-                        id: user.id
-                    },
-                    data: {
-                        otp: ""
-                    }
-                })
-            }, 300000)
-
-            res.status(200).send({
-                otp
-            })
-            return;
-        } else {
-            res.status(401).send({
                 success: false,
-                message: "Invalid user details"
+                message: `something went wrong in the signup controller : ${err}`
             })
-        }
-    } catch (e) {
-        console.error("Something went wrong in the singin controller")
-        res.send({
-            message: "Something went wrong in the singin controller"
-        })
+        return
     }
 }
 
-export const signup = async (req: Request, res: Response) => {
-    try {
+export const signin = async (req: Request, res: Response) => {
+    // try {
 
-        const parsedData = UserSchema.safeParse(req.body);
-        if (!parsedData.success) {
-            res.status(401).send({
-                success: false,
-                message: "Invalid user details",
-                error: parsedData.error
-            })
-            return
-        }
-        const user = await prisma.user.create({
-            data: {
-                name: parsedData.data.name,
-                password: parsedData.data.password,
-                email: parsedData.data.email ?? "",
-                phoneNumber: parsedData.data.phoneNumber ?? ""
-            }
-        })
+    //     const parsedData = UserSchema.safeParse(req.body);
+    //     if (!parsedData.success) {
+    //         res.status(401).send({
+    //             success: false,
+    //             message: "Invalid user details",
+    //             error: parsedData.error
+    //         })
+    //         return
+    //     }
+    //     const user = await prisma.user.create({
+    //         data: {
+    //             name: parsedData.data.name,
+    //             password: parsedData.data.password,
+    //             email: parsedData.data.email ?? "",
+    //             phoneNumber: parsedData.data.phoneNumber ?? ""
+    //         }
+    //     })
 
-        console.log(`This is the created user : ${user}`)
+    //     console.log(`This is the created user : ${user}`)
 
-        res.status(200).send({
-            id: user.id
-        })
+    //     res.status(200).send({
+    //         id: user.id
+    //     })
 
-    } catch (e) {
-        console.error("Something went wrong in the signup controller")
-        res.send({
-            message: "Something went wrong in the signup controller"
-        })
-    }
+    // } catch (e) {
+    //     console.error("Something went wrong in the signup controller")
+    //     res.send({
+    //         message: "Something went wrong in the signup controller"
+    //     })
+    // }
 }
 
 export const verifyOtp = async (req: Request, res: Response) => {
-    const parsedData = OtpSchema.safeParse(req.body);
-    if (!parsedData.success) {
-        res.status(403).send({
-            message: "Invalid Otp"
-        })
-        return;
-    }
+    // const parsedData = OtpSchema.safeParse(req.body);
+    // if (!parsedData.success) {
+    //     res.status(403).send({
+    //         message: "Invalid Otp"
+    //     })
+    //     return;
+    // }
 
-    const { email, otp, phoneNumber } = req.body;
+    // const { email, otp, phoneNumber } = req.body;
 
-    if (email) {
-        const user = await prisma.user.findFirst({
-            where: {
-                email
-            }
-        })
-        if (!user) {
-            res.status(401).send({
-                success: false,
-                message: "invalid email"
-            })
-            return
-        }
-
-        if (user.otp === otp) {
-            res.status(200).send({
-                success: true,
-                message: "otp verified successfully"
-            })
-            return;
-        } else {
-            res.status(401).send({
-                success: false,
-                message: "otp verifcation failed"
-            })
-            return
-        }
-    } else {
-        const user = await prisma.user.findFirst({
-            where: {
-                phoneNumber
-            }
-        })
-        if (!user) {
-            res.status(401).send({
-                success: false,
-                message: "invalid phone number"
-            })
-            return
-        }
-        if (user.otp === otp) {
-            res.status(200).send({
-                success: true,
-                message: "otp verified successfully"
-            })
-            return
-        } else {
-            res.status(401).send({
-                success: false,
-                message: "otp verifcation failed"
-            })
-            return;
-        }
-    }
-
-
-    // if (req.body.type === "email") {
+    // if (email) {
     //     const user = await prisma.user.findFirst({
     //         where: {
-    //             email: req.body.email
+    //             email
     //         }
     //     })
     //     if (!user) {
@@ -234,22 +118,23 @@ export const verifyOtp = async (req: Request, res: Response) => {
     //         return
     //     }
 
-    //     if (user.otp === req.body.otp) {
+    //     if (user.otp === otp) {
     //         res.status(200).send({
     //             success: true,
     //             message: "otp verified successfully"
     //         })
+    //         return;
     //     } else {
     //         res.status(401).send({
     //             success: false,
     //             message: "otp verifcation failed"
     //         })
+    //         return
     //     }
-
-    // } else if (req.body.type === "phoneNumber") {
+    // } else {
     //     const user = await prisma.user.findFirst({
     //         where: {
-    //             email: req.body.phoneNumber
+    //             phoneNumber
     //         }
     //     })
     //     if (!user) {
@@ -259,7 +144,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
     //         })
     //         return
     //     }
-    //     if (user.otp === req.body.otp) {
+    //     if (user.otp === otp) {
     //         res.status(200).send({
     //             success: true,
     //             message: "otp verified successfully"
@@ -272,7 +157,5 @@ export const verifyOtp = async (req: Request, res: Response) => {
     //         })
     //         return;
     //     }
-
     // }
-
 }

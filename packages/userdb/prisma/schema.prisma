@@ -13,5 +13,17 @@ model User {
   phoneNumber String? @unique
   password    String
   name        String
-  otp         String?  @default("")
+  isActive    Boolean
+  auth        Auth?
+}
+
+model Auth {
+  id          String  @id @default(cuid())
+  email       String? @unique
+  phoneNumber String? @unique
+  password    String
+  name        String
+  otp         String? @default("")
+  userid      String  @unique
+  account     User    @relation(fields: [userid], references: [id])
 }
